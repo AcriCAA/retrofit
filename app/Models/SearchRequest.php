@@ -71,7 +71,7 @@ class SearchRequest extends Model
             });
     }
 
-    public function getAttributeValue(string $key): ?string
+    public function getSearchAttribute(string $key): ?string
     {
         return $this->attributes()->where('key', $key)->value('value');
     }

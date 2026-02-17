@@ -38,23 +38,18 @@ class AnthropicService
         ?callable $toolHandler = null
     ): array {
         try {
-            $params = [
-                'model' => $this->model,
-                'max_tokens' => $this->maxTokens,
-                'system' => $systemPrompt,
-                'messages' => $messages,
-            ];
+            $response = $this->client->messages->create(
+                maxTokens: $this->maxTokens,
+                messages: $messages,
+                model: $this->model,
+                system: $systemPrompt,
+                tools: $tools,
+            );
 
-            if ($tools) {
-                $params['tools'] = $tools;
-            }
+            $inputTokens = $response->usage->inputTokens ?? 0;
+            $outputTokens = $response->usage->outputTokens ?? 0;
 
-            $response = $this->client->messages->create($params);
-
-            $inputTokens = $response->usage->input_tokens ?? 0;
-            $outputTokens = $response->usage->output_tokens ?? 0;
-
-            if ($response->stop_reason === 'tool_use' && $toolHandler) {
+            if ($response->stopReason === 'tool_use' && $toolHandler) {
                 return $this->handleToolUse(
                     $response,
                     $systemPrompt,
@@ -81,7 +76,7 @@ class AnthropicService
                 'model' => $response->model,
                 'input_tokens' => $inputTokens,
                 'output_tokens' => $outputTokens,
-                'stop_reason' => $response->stop_reason,
+                'stop_reason' => $response->stopReason,
                 'tool_results' => [],
             ];
         } catch (\Anthropic\RateLimitError $e) {
@@ -101,7 +96,7 @@ class AnthropicService
                 'error_type' => 'auth',
             ];
         } catch (\Exception $e) {
-            Log::error('Anthropic API error', ['error' => $e->getMessage()]);
+            Log::error('Anthropic API error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
 
             return [
                 'success' => false,
@@ -167,20 +162,18 @@ class AnthropicService
                 ['role' => 'user', 'content' => $toolResultContent],
             ]);
 
-            $params = [
-                'model' => $this->model,
-                'max_tokens' => $this->maxTokens,
-                'system' => $systemPrompt,
-                'messages' => $currentMessages,
-                'tools' => $tools,
-            ];
+            $currentResponse = $this->client->messages->create(
+                maxTokens: $this->maxTokens,
+                messages: $currentMessages,
+                model: $this->model,
+                system: $systemPrompt,
+                tools: $tools,
+            );
 
-            $currentResponse = $this->client->messages->create($params);
+            $totalInputTokens += $currentResponse->usage->inputTokens ?? 0;
+            $totalOutputTokens += $currentResponse->usage->outputTokens ?? 0;
 
-            $totalInputTokens += $currentResponse->usage->input_tokens ?? 0;
-            $totalOutputTokens += $currentResponse->usage->output_tokens ?? 0;
-
-            if ($currentResponse->stop_reason !== 'tool_use') {
+            if ($currentResponse->stopReason !== 'tool_use') {
                 break;
             }
         }
@@ -197,7 +190,7 @@ class AnthropicService
             'model' => $currentResponse->model,
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
-            'stop_reason' => $currentResponse->stop_reason,
+            'stop_reason' => $currentResponse->stopReason,
             'tool_results' => $allToolResults,
         ];
     }
