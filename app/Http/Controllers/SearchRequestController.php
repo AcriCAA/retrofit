@@ -39,7 +39,15 @@ class SearchRequestController extends Controller
             $q->latest();
         }]);
 
-        return view('searches.show', compact('searchRequest'));
+        $resultStats = [
+            'total' => $searchRequest->results->count(),
+            'new' => $searchRequest->results->where('user_status', 'new')->count(),
+            'saved' => $searchRequest->results->where('user_status', 'saved')->count(),
+            'viewed' => $searchRequest->results->where('user_status', 'viewed')->count(),
+            'marketplaces' => $searchRequest->results->groupBy('marketplace')->map->count(),
+        ];
+
+        return view('searches.show', compact('searchRequest', 'resultStats'));
     }
 
     public function edit(SearchRequest $searchRequest)

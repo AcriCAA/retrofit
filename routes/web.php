@@ -13,7 +13,7 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
-    Route::resource('searches', SearchRequestController::class);
+    Route::resource('searches', SearchRequestController::class)->parameters(['searches' => 'searchRequest']);
 
     Route::get('/settings/notifications', [NotificationPreferenceController::class, 'edit'])->name('notifications.edit');
     Route::put('/settings/notifications', [NotificationPreferenceController::class, 'update'])->name('notifications.update');
