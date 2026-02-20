@@ -9,9 +9,9 @@ class MarketplaceManager
 {
     protected array $adapters = [];
 
-    public function __construct()
+    public function __construct(EbayTokenService $ebayTokenService)
     {
-        $this->registerAdapter(new EbayAdapter);
+        $this->registerAdapter(new EbayAdapter($ebayTokenService));
         $this->registerAdapter(new PoshmarkAdapter);
         $this->registerAdapter(new MercariAdapter);
         $this->registerAdapter(new ThredUpAdapter);

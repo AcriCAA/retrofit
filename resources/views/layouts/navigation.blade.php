@@ -21,6 +21,9 @@
                     <x-nav-link :href="route('searches.create')" :active="request()->routeIs('searches.create')">
                         {{ __('New Search') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('invitations.index')" :active="request()->routeIs('invitations.*')">
+                        {{ __('Invitations') }}
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -85,6 +88,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('searches.create')" :active="request()->routeIs('searches.create')">
                 {{ __('New Search') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('invitations.index')" :active="request()->routeIs('invitations.*')">
+                {{ __('Invitations') }}
             </x-responsive-nav-link>
         </div>
 

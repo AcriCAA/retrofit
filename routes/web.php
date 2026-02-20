@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchRequestController;
@@ -17,6 +18,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/settings/notifications', [NotificationPreferenceController::class, 'edit'])->name('notifications.edit');
     Route::put('/settings/notifications', [NotificationPreferenceController::class, 'update'])->name('notifications.update');
+
+    Route::resource('invitations', InvitationController::class)
+        ->only(['index', 'store', 'destroy']);
 });
 
 Route::middleware('auth')->group(function () {

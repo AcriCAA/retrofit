@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopedToAuthUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NotificationPreference extends Model
 {
+    use ScopedToAuthUser;
     protected $fillable = [
         'user_id',
         'email_enabled',

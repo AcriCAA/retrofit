@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'enabled' => explode(',', env('MARKETPLACES_ENABLED', 'ebay')),
+    'enabled' => explode(',', env('MARKETPLACES_ENABLED', 'ebay,grailed')),
 
     /*
     |--------------------------------------------------------------------------
@@ -50,7 +50,10 @@ return [
     ],
 
     'grailed' => [
-        'api_key' => env('GRAILED_API_KEY'),
+        'algolia_app_id' => env('GRAILED_ALGOLIA_APP_ID'),
+        'algolia_api_key' => env('GRAILED_ALGOLIA_API_KEY'),
+        'algolia_index' => env('GRAILED_ALGOLIA_INDEX', 'Listing_production'),
+        'algolia_host' => env('GRAILED_ALGOLIA_HOST'),
     ],
 
 ];

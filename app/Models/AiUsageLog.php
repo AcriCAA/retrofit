@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopedToAuthUser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AiUsageLog extends Model
 {
+    use ScopedToAuthUser;
     protected $fillable = [
         'user_id',
         'conversation_id',
