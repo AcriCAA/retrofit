@@ -13,11 +13,11 @@
     <div class="min-h-screen flex flex-col items-center justify-center px-6">
 
         {{-- Logo + wordmark --}}
-        <div class="flex flex-col items-center gap-4">
-            <x-application-logo class="w-40 h-40 text-gray-900" />
-            <span class="text-4xl font-bold tracking-tight text-gray-900" style="font-family: 'Instrument Sans', sans-serif;">
+        <div class="flex flex-col items-center text-center">
+            <x-application-logo style="width:200px;height:200px;border:2px solid black;" class="text-gray-900" />
+            <h1 class="mt-4 text-4xl font-bold tracking-tight text-gray-900" style="font-family: 'Instrument Sans', sans-serif;">
                 RetroFit
-            </span>
+            </h1>
             <p class="text-gray-500 text-sm mt-1">Find discontinued fashion on secondhand marketplaces.</p>
         </div>
 
