@@ -179,14 +179,20 @@ PROMPT;
     protected function buildImageContent(string $imagePath): array
     {
         $fullPath = Storage::disk('public')->path($imagePath);
-        $imageData = base64_encode(file_get_contents($fullPath));
-        $mimeType = mime_content_type($fullPath);
+
+        $image = \Intervention\Image\Laravel\Facades\Image::read($fullPath);
+
+        if ($image->width() > 1568 || $image->height() > 1568) {
+            $image->scaleDown(width: 1568, height: 1568);
+        }
+
+        $imageData = base64_encode($image->toJpeg(quality: 85));
 
         return [
             'type' => 'image',
             'source' => [
                 'type' => 'base64',
-                'media_type' => $mimeType,
+                'media_type' => 'image/jpeg',
                 'data' => $imageData,
             ],
         ];
