@@ -38,13 +38,7 @@ class AnthropicService
         ?callable $toolHandler = null
     ): array {
         try {
-            $response = $this->client->messages->create(
-                maxTokens: $this->maxTokens,
-                messages: $messages,
-                model: $this->model,
-                system: $systemPrompt,
-                tools: $tools,
-            );
+            $response = $this->callApiWithRetry($messages, $systemPrompt, $tools);
 
             $inputTokens = $response->usage->inputTokens ?? 0;
             $outputTokens = $response->usage->outputTokens ?? 0;
@@ -162,13 +156,7 @@ class AnthropicService
                 ['role' => 'user', 'content' => $toolResultContent],
             ]);
 
-            $currentResponse = $this->client->messages->create(
-                maxTokens: $this->maxTokens,
-                messages: $currentMessages,
-                model: $this->model,
-                system: $systemPrompt,
-                tools: $tools,
-            );
+            $currentResponse = $this->callApiWithRetry($currentMessages, $systemPrompt, $tools);
 
             $totalInputTokens += $currentResponse->usage->inputTokens ?? 0;
             $totalOutputTokens += $currentResponse->usage->outputTokens ?? 0;
@@ -193,6 +181,37 @@ class AnthropicService
             'stop_reason' => $currentResponse->stopReason,
             'tool_results' => $allToolResults,
         ];
+    }
+
+    protected function callApiWithRetry(array $messages, string $systemPrompt, ?array $tools): Message
+    {
+        $maxRetries = 3;
+
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            try {
+                return $this->client->messages->create(
+                    maxTokens: $this->maxTokens,
+                    messages: $messages,
+                    model: $this->model,
+                    system: $systemPrompt,
+                    tools: $tools,
+                );
+            } catch (\Exception $e) {
+                $isOverloaded = str_contains($e->getMessage(), 'overloaded_error')
+                    || str_contains($e->getMessage(), '529');
+
+                if (!$isOverloaded || $attempt === $maxRetries) {
+                    throw $e;
+                }
+
+                $delaySeconds = 2 ** $attempt; // 2s, 4s, 8s
+                Log::warning('Anthropic API overloaded, retrying', [
+                    'attempt' => $attempt,
+                    'delay_seconds' => $delaySeconds,
+                ]);
+                sleep($delaySeconds);
+            }
+        }
     }
 
     protected function extractTextContent(Message $response): string
