@@ -67,7 +67,7 @@ class SearchRequest extends Model
             ->where(function (Builder $q) {
                 $q->whereNull('last_searched_at')
                     ->orWhereRaw(
-                        'last_searched_at <= datetime("now", "-" || search_frequency_minutes || " minutes")'
+                        'last_searched_at <= DATE_SUB(NOW(), INTERVAL search_frequency_minutes MINUTE)'
                     );
             });
     }
