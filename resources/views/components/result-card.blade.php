@@ -9,7 +9,13 @@
     $colorClass = $marketplaceColors[$result->marketplace] ?? 'bg-gray-100 text-gray-800';
 @endphp
 
-<div class="bg-white overflow-hidden shadow-sm sm:rounded-lg" x-data="resultActions({{ $result->id }}, '{{ $result->user_status }}')">
+<div class="bg-white overflow-hidden shadow-sm sm:rounded-lg"
+    x-data="resultActions({{ $result->id }}, '{{ $result->user_status }}', @js(['title' => $result->title, 'price' => $result->price, 'imageUrl' => $result->image_url, 'marketplace' => ucfirst($result->marketplace), 'condition' => $result->condition]))"
+    x-show="status !== 'dismissed'"
+    x-transition:leave="transition ease-in duration-200"
+    x-transition:leave-start="opacity-100 scale-100"
+    x-transition:leave-end="opacity-0 scale-95"
+>
     {{-- Image --}}
     @if($result->image_url)
         <div class="h-48 bg-gray-100 overflow-hidden">
@@ -64,11 +70,10 @@
                 </svg>
             </button>
             <button
-                @click="updateStatus('dismissed')"
+                @click="openDismissalChat()"
                 :disabled="isUpdating"
-                x-show="status !== 'dismissed'"
-                class="px-2 py-1.5 bg-white border border-gray-300 rounded text-xs font-medium text-gray-500 hover:bg-gray-50 transition disabled:opacity-50"
-                title="Dismiss"
+                class="px-2 py-1.5 bg-white border border-gray-300 rounded text-xs font-medium text-gray-500 hover:bg-red-50 hover:border-red-300 hover:text-red-500 transition disabled:opacity-50"
+                title="Not a match? Tell us why"
             >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

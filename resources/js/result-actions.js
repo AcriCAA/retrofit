@@ -1,8 +1,18 @@
 import Alpine from 'alpinejs';
 
-Alpine.data('resultActions', (resultId, initialStatus) => ({
+Alpine.data('resultActions', (resultId, initialStatus, resultMeta = {}) => ({
     status: initialStatus || 'new',
     isUpdating: false,
+    resultMeta: resultMeta,
+
+    openDismissalChat() {
+        this.$dispatch('open-dismissal-modal', {
+            resultId: resultId,
+            ...this.resultMeta,
+        });
+        // Mark dismissed locally immediately so the card hides
+        this.status = 'dismissed';
+    },
 
     async updateStatus(newStatus) {
         if (this.isUpdating) return;

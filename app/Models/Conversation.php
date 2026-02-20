@@ -17,6 +17,9 @@ class Conversation extends Model
         'product_category_id',
         'image_path',
         'status',
+        'type',
+        'search_request_id',
+        'search_result_id',
     ];
 
     protected static function booted(): void
@@ -46,6 +49,16 @@ class Conversation extends Model
     public function searchRequests(): HasMany
     {
         return $this->hasMany(SearchRequest::class);
+    }
+
+    public function searchRequest(): BelongsTo
+    {
+        return $this->belongsTo(SearchRequest::class);
+    }
+
+    public function searchResult(): BelongsTo
+    {
+        return $this->belongsTo(SearchResult::class);
     }
 
     public function getRouteKeyName(): string

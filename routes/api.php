@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ChatbotController;
+use App\Http\Controllers\Api\DismissalChatController;
 use App\Http\Controllers\Api\SearchResultController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -15,4 +16,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/chat/{uuid}/history', [ChatbotController::class, 'history']);
 
     Route::patch('/results/{result}/status', [SearchResultController::class, 'updateStatus']);
+
+    Route::post('/results/{result}/dismiss-chat/start', [DismissalChatController::class, 'start']);
+    Route::post('/dismiss-chat/{uuid}', [DismissalChatController::class, 'send']);
 });
