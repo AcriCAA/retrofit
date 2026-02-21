@@ -8,6 +8,14 @@
                 <a href="{{ route('searches.edit', $searchRequest) }}" class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
                     Edit
                 </a>
+                <form method="POST" action="{{ route('searches.destroy', $searchRequest) }}"
+                    onsubmit="return confirm('Delete this search and all its results? This cannot be undone.')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-white border border-red-300 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 transition">
+                        Delete
+                    </button>
+                </form>
                 @if($searchRequest->status !== 'completed')
                     <form method="POST" action="{{ route('searches.update', $searchRequest) }}">
                         @csrf

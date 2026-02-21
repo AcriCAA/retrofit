@@ -80,9 +80,10 @@ class SearchRequestController extends Controller
     {
         $this->authorize('delete', $searchRequest);
 
+        $searchRequest->results()->delete();
         $searchRequest->delete();
 
         return redirect()->route('searches.index')
-            ->with('success', 'Search request deleted.');
+            ->with('success', 'Search deleted.');
     }
 }
