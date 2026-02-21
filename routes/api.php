@@ -15,6 +15,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/chat/{uuid}', [ChatbotController::class, 'send']);
     Route::get('/chat/{uuid}/history', [ChatbotController::class, 'history']);
 
+    Route::post('/results/bulk-dismiss', [SearchResultController::class, 'bulkDismiss']);
     Route::patch('/results/{result}/status', [SearchResultController::class, 'updateStatus']);
 
     Route::post('/results/{result}/dismiss-chat/start', [DismissalChatController::class, 'start']);

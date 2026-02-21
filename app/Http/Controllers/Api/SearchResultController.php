@@ -24,4 +24,26 @@ class SearchResultController extends Controller
 
         return response()->json(['success' => true, 'status' => $result->user_status]);
     }
+
+    public function bulkDismiss(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'result_ids' => 'required|array|max:50',
+            'result_ids.*' => 'integer',
+        ]);
+
+        $userId = $request->user()->id;
+
+        $results = SearchResult::whereIn('id', $validated['result_ids'])
+            ->whereHas('searchRequest', fn ($q) => $q->where('user_id', $userId)->withoutGlobalScopes())
+            ->whereIn('user_status', ['new', 'viewed'])
+            ->get();
+
+        $results->each(fn ($r) => $r->update(['user_status' => 'dismissed']));
+
+        return response()->json([
+            'success' => true,
+            'dismissed_ids' => $results->pluck('id')->values(),
+        ]);
+    }
 }

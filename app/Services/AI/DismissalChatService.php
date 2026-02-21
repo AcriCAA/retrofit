@@ -8,6 +8,7 @@ use App\Models\SearchRequest;
 use App\Models\SearchRequestAttribute;
 use App\Models\SearchResult;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class DismissalChatService
@@ -71,23 +72,34 @@ class DismissalChatService
         ]);
 
         $searchRequest = $conversation->searchRequest;
-        $result = $conversation->searchResult;
+        $dismissedResult = $conversation->searchResult;
 
-        $systemPrompt = $this->buildSystemPrompt($searchRequest, $result);
+        // Load other active results from the same search to offer bulk dismissal
+        $otherResults = $searchRequest
+            ? SearchResult::where('search_request_id', $searchRequest->id)
+                ->whereIn('user_status', ['new', 'viewed'])
+                ->where('id', '!=', $dismissedResult?->id)
+                ->latest()
+                ->limit(25)
+                ->get()
+            : collect();
+
+        $systemPrompt = $this->buildSystemPrompt($searchRequest, $dismissedResult, $otherResults);
         $messages = $this->buildMessageHistory($conversation);
         $tools = $this->getTools();
 
         $criteriaRefined = null;
+        $similarResults = null;
 
-        $toolHandler = function (string $toolName, array $input) use ($searchRequest, $conversation, &$criteriaRefined) {
+        $toolHandler = function (string $toolName, array $input) use ($searchRequest, $conversation, &$criteriaRefined, &$similarResults) {
             if ($toolName === 'refine_search_criteria') {
-                return $this->handleRefineCriteria($searchRequest, $conversation, $input, $criteriaRefined);
+                return $this->handleRefineCriteria($searchRequest, $conversation, $input, $criteriaRefined, $similarResults);
             }
 
             return ['error' => 'Unknown tool: ' . $toolName];
         };
 
-        $result = $this->anthropic->sendMessage(
+        $aiResult = $this->anthropic->sendMessage(
             $systemPrompt,
             $messages,
             $user,
@@ -97,16 +109,16 @@ class DismissalChatService
             $toolHandler
         );
 
-        if (! $result['success']) {
-            return $result;
+        if (! $aiResult['success']) {
+            return $aiResult;
         }
 
         $assistantMessage = ChatMessage::create([
             'conversation_id' => $conversation->id,
             'role' => 'assistant',
-            'content' => $result['content'],
-            'input_tokens' => $result['input_tokens'],
-            'output_tokens' => $result['output_tokens'],
+            'content' => $aiResult['content'],
+            'input_tokens' => $aiResult['input_tokens'],
+            'output_tokens' => $aiResult['output_tokens'],
         ]);
 
         $response = [
@@ -115,7 +127,7 @@ class DismissalChatService
             'message' => [
                 'id' => $assistantMessage->id,
                 'role' => 'assistant',
-                'content' => $result['content'],
+                'content' => $aiResult['content'],
                 'created_at' => $assistantMessage->created_at->toISOString(),
             ],
         ];
@@ -124,12 +136,16 @@ class DismissalChatService
             $conversation->update(['status' => 'completed']);
             $response['criteria_refined'] = true;
             $response['refinement_summary'] = $criteriaRefined;
+
+            if (! empty($similarResults)) {
+                $response['similar_results'] = $similarResults;
+            }
         }
 
         return $response;
     }
 
-    protected function buildSystemPrompt(SearchRequest $searchRequest, ?SearchResult $dismissedResult): string
+    protected function buildSystemPrompt(SearchRequest $searchRequest, ?SearchResult $dismissedResult, Collection $otherResults): string
     {
         $attributes = $searchRequest->attributes->mapWithKeys(fn ($a) => [$a->key => $a->value])->toArray();
         $attributeLines = collect($attributes)->map(fn ($v, $k) => "- " . ucfirst(str_replace('_', ' ', $k)) . ": $v")->implode("\n");
@@ -156,6 +172,25 @@ The dismissed listing details:
 RESULT;
         }
 
+        $otherResultsSection = '';
+        if ($otherResults->isNotEmpty()) {
+            $lines = $otherResults->map(fn ($r) => sprintf(
+                '  - ID %d: "%s"%s (%s)',
+                $r->id,
+                $r->title,
+                $r->price ? ' — $' . number_format((float) $r->price, 0) : '',
+                ucfirst($r->marketplace)
+            ))->implode("\n");
+
+            $otherResultsSection = <<<OTHERS
+
+Other active results currently showing in this search (for you to evaluate):
+{$lines}
+
+After refining the search criteria, review this list. If any of these results share the SAME underlying issue as the dismissed item (e.g., also women's clothing when the user wants men's), include their IDs in the similar_result_ids field of refine_search_criteria. The user will be shown those as candidates to dismiss in one click — they won't be dismissed automatically.
+OTHERS;
+        }
+
         return <<<PROMPT
 You are RetroFit's AI assistant helping to improve a user's saved search criteria.
 
@@ -166,13 +201,14 @@ Current search attributes:
 {$resultContext}
 
 The user just dismissed this listing. Your job:
-1. Understand specifically WHY this listing didn't fit (wrong size, wrong color, wrong condition, too expensive, wrong style, not the right item, etc.)
+1. Understand specifically WHY this listing didn't fit (wrong size, wrong color, wrong condition, too expensive, wrong style, wrong gender, not the right item, etc.)
 2. Ask at most 1-2 short, focused follow-up questions if needed
-3. Once you understand the issue, use the refine_search_criteria tool to update the search criteria
+3. Once you understand the issue, use the refine_search_criteria tool to update the search criteria. If you can identify other results in the list below that share the same root problem, include their IDs in similar_result_ids.
 4. Keep the conversation very brief — 2-3 exchanges maximum
 5. Be friendly and concise
 
 Do NOT suggest completely different items. Focus only on understanding what specifically was wrong and refining accordingly.
+{$otherResultsSection}
 PROMPT;
     }
 
@@ -225,6 +261,11 @@ PROMPT;
                             'type' => 'string',
                             'description' => 'A brief, user-friendly summary of what was refined (e.g., "Got it — I\'ll filter out listings over $60 and prioritize like-new condition.")',
                         ],
+                        'similar_result_ids' => [
+                            'type' => 'array',
+                            'items' => ['type' => 'integer'],
+                            'description' => 'IDs of other results from the provided list that share the same root problem as the dismissed item (e.g., all women\'s items when user wants men\'s). Only include IDs from the list you were given. These will be offered to the user for one-click bulk dismissal — not dismissed automatically.',
+                        ],
                     ],
                     'required' => ['refinement_summary'],
                 ],
@@ -236,7 +277,8 @@ PROMPT;
         SearchRequest $searchRequest,
         Conversation $conversation,
         array $input,
-        ?string &$criteriaRefined
+        ?string &$criteriaRefined,
+        ?array &$similarResults
     ): array {
         try {
             $updates = [];
@@ -276,10 +318,32 @@ PROMPT;
 
             $criteriaRefined = $input['refinement_summary'];
 
+            // Resolve similar results — validate IDs belong to this search request
+            if (! empty($input['similar_result_ids'])) {
+                $ids = collect($input['similar_result_ids'])->filter()->unique()->values();
+
+                $similar = SearchResult::whereIn('id', $ids)
+                    ->where('search_request_id', $searchRequest->id)
+                    ->whereIn('user_status', ['new', 'viewed'])
+                    ->get(['id', 'title', 'price', 'marketplace', 'image_url', 'condition']);
+
+                if ($similar->isNotEmpty()) {
+                    $similarResults = $similar->map(fn ($r) => [
+                        'id' => $r->id,
+                        'title' => $r->title,
+                        'price' => $r->price,
+                        'marketplace' => $r->marketplace,
+                        'image_url' => $r->image_url,
+                        'condition' => $r->condition,
+                    ])->values()->toArray();
+                }
+            }
+
             Log::info('Search criteria refined via dismissal feedback', [
                 'search_request_id' => $searchRequest->id,
                 'conversation_id' => $conversation->id,
                 'refinement_summary' => $criteriaRefined,
+                'similar_result_ids' => collect($similarResults ?? [])->pluck('id'),
             ]);
 
             return [

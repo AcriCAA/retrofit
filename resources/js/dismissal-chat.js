@@ -10,6 +10,9 @@ Alpine.data('dismissalChat', () => ({
     isStarting: false,
     isRefined: false,
     refinementSummary: '',
+    similarResults: [],
+    bulkDismissed: false,
+    isBulkDismissing: false,
     error: null,
 
     open(resultData) {
@@ -20,6 +23,8 @@ Alpine.data('dismissalChat', () => ({
         this.message = '';
         this.isRefined = false;
         this.refinementSummary = '';
+        this.similarResults = [];
+        this.bulkDismissed = false;
         this.error = null;
         this.startChat();
     },
@@ -96,12 +101,44 @@ Alpine.data('dismissalChat', () => ({
                 this.isRefined = true;
                 this.refinementSummary = data.refinement_summary;
             }
+
+            if (data.similar_results && data.similar_results.length > 0) {
+                this.similarResults = data.similar_results;
+            }
         } catch (e) {
             this.error = e.message;
             this.messages = this.messages.filter(m => !String(m.id).startsWith('temp-'));
             this.message = userMessage;
         } finally {
             this.isSending = false;
+        }
+    },
+
+    async bulkDismiss() {
+        if (this.isBulkDismissing) return;
+        this.isBulkDismissing = true;
+        try {
+            const ids = this.similarResults.map(r => r.id);
+            const response = await fetch('/api/results/bulk-dismiss', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': this.getCsrfToken(),
+                },
+                body: JSON.stringify({ result_ids: ids }),
+            });
+            const data = await response.json();
+            if (data.success) {
+                this.bulkDismissed = true;
+                data.dismissed_ids.forEach(id => {
+                    window.dispatchEvent(new CustomEvent('result-bulk-dismissed', { detail: { resultId: id } }));
+                });
+            }
+        } catch (e) {
+            console.error('Bulk dismiss failed:', e);
+        } finally {
+            this.isBulkDismissing = false;
         }
     },
 

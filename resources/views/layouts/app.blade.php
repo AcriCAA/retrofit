@@ -158,6 +158,34 @@
                             </div>
                         </template>
 
+                        {{-- Similar results bulk dismiss prompt --}}
+                        <template x-if="isRefined && similarResults.length > 0 && !bulkDismissed">
+                            <div class="mx-4 mb-3 px-3.5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-900">
+                                <p class="font-medium mb-2">Found <span x-text="similarResults.length"></span> other result<template x-if="similarResults.length !== 1"><span>s</span></template> with the same issue:</p>
+                                <ul class="space-y-1 mb-3">
+                                    <template x-for="r in similarResults" :key="r.id">
+                                        <li class="text-xs text-amber-800" x-text="r.title + (r.price ? ' — $' + parseFloat(r.price).toFixed(0) : '') + ' (' + r.marketplace + ')'"></li>
+                                    </template>
+                                </ul>
+                                <div class="flex gap-2">
+                                    <button
+                                        @click="bulkDismiss()"
+                                        :disabled="isBulkDismissing"
+                                        class="px-3 py-1.5 bg-amber-700 text-white text-xs font-medium rounded-lg hover:bg-amber-800 transition disabled:opacity-50"
+                                    >
+                                        <span x-show="!isBulkDismissing">Dismiss these too</span>
+                                        <span x-show="isBulkDismissing">Dismissing...</span>
+                                    </button>
+                                    <button
+                                        @click="bulkDismissed = true"
+                                        class="px-3 py-1.5 bg-white border border-amber-300 text-amber-700 text-xs font-medium rounded-lg hover:bg-amber-50 transition"
+                                    >
+                                        Skip
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+
                         {{-- Error --}}
                         <template x-if="error">
                             <div class="mx-4 mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700" x-text="error"></div>

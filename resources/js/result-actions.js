@@ -5,6 +5,16 @@ Alpine.data('resultActions', (resultId, initialStatus, resultMeta = {}) => ({
     isUpdating: false,
     resultMeta: resultMeta,
 
+    init() {
+        const handler = (e) => {
+            if (e.detail.resultId === resultId) {
+                this.status = 'dismissed';
+            }
+        };
+        window.addEventListener('result-bulk-dismissed', handler);
+        this.$cleanup(() => window.removeEventListener('result-bulk-dismissed', handler));
+    },
+
     openDismissalChat() {
         this.$dispatch('open-dismissal-modal', {
             resultId: resultId,
