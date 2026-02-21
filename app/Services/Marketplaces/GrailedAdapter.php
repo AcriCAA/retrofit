@@ -97,7 +97,14 @@ class GrailedAdapter extends AbstractMarketplaceAdapter
             return "{$brand} {$model}";
         }
 
-        return $brand ?? $searchRequest->title;
+        $parts = array_filter([
+            $brand,
+            $attrs->get('style')?->value,
+            $attrs->get('color')?->value,
+            $attrs->get('material')?->value,
+        ]);
+
+        return $parts ? implode(' ', $parts) : $searchRequest->title;
     }
 
     protected function normalizeResult(array $hit): array

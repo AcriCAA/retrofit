@@ -27,6 +27,7 @@ class DashboardController extends Controller
             ->count();
 
         $recentResults = SearchResult::whereIn('search_request_id', $userSearchRequestIds)
+            ->where('marketplace', '!=', 'grailed')
             ->with('searchRequest')
             ->latest()
             ->take(12)

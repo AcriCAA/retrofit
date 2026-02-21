@@ -235,10 +235,32 @@
                             @endif
                         </div>
                     @else
-                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                            @foreach($searchRequest->results as $result)
-                                @include('components.result-card', ['result' => $result])
-                            @endforeach
+                        @php
+                            $mainResults    = $searchRequest->results->where('marketplace', '!=', 'grailed');
+                            $grailedResults = $searchRequest->results->where('marketplace', 'grailed');
+                        @endphp
+                        <div x-data="{ showGrailed: false }">
+                            @if($mainResults->isNotEmpty())
+                                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    @foreach($mainResults as $result)
+                                        @include('components.result-card', ['result' => $result])
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            @if($grailedResults->isNotEmpty())
+                                <div x-show="showGrailed" x-cloak class="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    @foreach($grailedResults as $result)
+                                        @include('components.result-card', ['result' => $result])
+                                    @endforeach
+                                </div>
+                                <div class="mt-8 text-center">
+                                    <button @click="showGrailed = !showGrailed" class="inline-flex items-center px-5 py-2.5 bg-purple-50 border border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-100 transition">
+                                        <span x-show="!showGrailed">See {{ $grailedResults->count() }} more results from other sites...</span>
+                                        <span x-show="showGrailed" x-cloak>Hide results from other sites</span>
+                                    </button>
+                                </div>
+                            @endif
                         </div>
                     @endif
                 </div>
