@@ -1,27 +1,32 @@
-<?php
+t<?php
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\SearchRequest;
+use App\Models\SearchResult;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request)
+    public function __invoke()
     {
-        $user = $request->user();
+        $user = Auth::user();
 
-        $activeSearches = $user->searchRequests()->where('status', 'active')->count();
-        $newResults = $user->searchRequests()
-            ->withCount(['results as new_results_count' => function ($q) {
-                $q->where('user_status', 'new');
-            }])
-            ->get()
-            ->sum('new_results_count');
+        $userSearchRequestIds = SearchRequest::withoutGlobalScopes()
+            ->where('user_id', $user->id)
+            ->whereNull('deleted_at')
+            ->pluck('id');
 
-        $recentResults = \App\Models\SearchResult::whereIn(
-            'search_request_id',
-            $user->searchRequests()->pluck('id')
-        )
+        $activeSearches = SearchRequest::withoutGlobalScopes()
+            ->where('user_id', $user->id)
+            ->whereNull('deleted_at')
+            ->where('status', 'active')
+            ->count();
+        $newResults = SearchResult::whereIn('search_request_id', $userSearchRequestIds)
+            ->where('user_status', 'new')
+            ->count();
+
+        $recentResults = SearchResult::whereIn('search_request_id', $userSearchRequestIds)
             ->with('searchRequest')
             ->latest()
             ->take(12)
