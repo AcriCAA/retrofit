@@ -121,6 +121,12 @@ Alpine.data('itemChat', () => ({
                 throw new Error('Your session has expired. Please refresh the page and try again.');
             }
 
+            // Detect redirects to login page (auth middleware 302 → followed to HTML page)
+            if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
+                this.sessionExpired = true;
+                throw new Error('Your session has expired. Please refresh the page and try again.');
+            }
+
             let data;
             try {
                 data = await response.json();

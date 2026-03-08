@@ -73,7 +73,7 @@ class AnthropicService
                 'stop_reason' => $response->stopReason,
                 'tool_results' => [],
             ];
-        } catch (\Anthropic\RateLimitError $e) {
+        } catch (\Anthropic\Core\Exceptions\RateLimitException $e) {
             Log::warning('Anthropic rate limit exceeded', ['error' => $e->getMessage()]);
 
             return [
@@ -81,7 +81,7 @@ class AnthropicService
                 'error' => 'Rate limit exceeded. Please wait a moment before trying again.',
                 'error_type' => 'rate_limit',
             ];
-        } catch (\Anthropic\AuthenticationError $e) {
+        } catch (\Anthropic\Core\Exceptions\AuthenticationException $e) {
             Log::error('Anthropic authentication error', ['error' => $e->getMessage()]);
 
             return [

@@ -3,6 +3,9 @@
 use App\Jobs\DispatchMarketplaceSearchesJob;
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::job(new DispatchMarketplaceSearchesJob)
-    ->everyFifteenMinutes()
-    ->pingOnSuccess(env('HEARTBEAT_DISPATCH_SEARCHES_URL'));
+$schedule = Schedule::job(new DispatchMarketplaceSearchesJob)
+    ->everyFifteenMinutes();
+
+if ($heartbeatUrl = env('HEARTBEAT_DISPATCH_SEARCHES_URL')) {
+    $schedule->pingOnSuccess($heartbeatUrl);
+}
