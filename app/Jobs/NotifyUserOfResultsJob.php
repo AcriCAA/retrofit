@@ -24,6 +24,10 @@ class NotifyUserOfResultsJob implements ShouldQueue
 
     public function handle(): void
     {
+        if (! $this->isMailConfigured()) {
+            return;
+        }
+
         $user = $this->searchRequest->user;
         $preferences = $user->notificationPreference;
 
@@ -44,6 +48,25 @@ class NotifyUserOfResultsJob implements ShouldQueue
             $this->markNotified();
         }
         // daily/weekly digests would be handled by a separate scheduled job
+    }
+
+    protected function isMailConfigured(): bool
+    {
+        $mailer = config('mail.default');
+
+        if (in_array($mailer, ['log', 'array', 'failover'])) {
+            return false;
+        }
+
+        if ($mailer === 'smtp') {
+            $host = config('mail.mailers.smtp.host', '');
+
+            if (in_array($host, ['127.0.0.1', 'localhost', '::1'])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     protected function markNotified(): void

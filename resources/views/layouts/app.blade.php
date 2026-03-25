@@ -162,7 +162,7 @@
                         <template x-if="isRefined && similarResults.length > 0 && !bulkDismissed">
                             <div class="mx-4 mb-3 px-3.5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-900">
                                 <p class="font-medium mb-2">Found <span x-text="similarResults.length"></span> other result<template x-if="similarResults.length !== 1"><span>s</span></template> with the same issue:</p>
-                                <ul class="space-y-1 mb-3">
+                                <ul class="space-y-1 mb-3 max-h-48 overflow-y-auto">
                                     <template x-for="r in similarResults" :key="r.id">
                                         <li class="text-xs text-amber-800" x-text="r.title + (r.price ? ' — $' + parseFloat(r.price).toFixed(0) : '') + ' (' + r.marketplace + ')'"></li>
                                     </template>

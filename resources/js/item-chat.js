@@ -147,7 +147,9 @@ Alpine.data('itemChat', () => ({
 
             this.scrollToBottom();
         } catch (e) {
-            this.error = e.message;
+            if (!this.sessionExpired) {
+                this.error = e.message;
+            }
             this.messages = this.messages.filter(m => !String(m.id).startsWith('temp-'));
             this.message = userMessage;
         } finally {
